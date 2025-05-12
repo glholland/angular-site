@@ -1,0 +1,65 @@
+name: Build and Deploy Angular App
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  # PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  # PROJECT_NUMBER: ${{ vars.GCP_PROJECT_NUMBER }}
+  # REGISTRY: ${{ vars.ARTIFACT_REGISTRY_LOCATION }}-docker.pkg.dev
+  # REPOSITORY: ${{ vars.ARTIFACT_REGISTRY_REPOSITORY }}
+  IMAGE_NAME: angular-hello-world
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Needed for Google auth
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Setup authentication to Google Cloud
+      - name: 'Auth to Google Cloud'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          token_format: "access_token"
+          workload_identity_provider: 'projects/${{ vars.GCP_PROJECT_NUM }}/locations/global/workloadIdentityPools/github-pool/providers/${{ vars.WORKLOAD_IDENTITY_PROVIDER }}'
+          service_account: ${{ secrets.SERVICE_ACCOUNT }}
+
+      # Setup gcloud CLI
+      # - name: Set up Google Cloud SDK
+      #   uses: google-github-actions/setup-gcloud@v2
+
+      # Configure docker to use gcloud as a credential helper
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker us-central1-docker.pkg.dev --quiet
+
+      # Build the Docker image
+      - name: Build Docker image
+        run: |
+          echo "Building Docker image..."
+          echo "Using image name: ${{ env.IMAGE_NAME }}"
+          echo "Building from SHA: ${{ github.sha }}"
+          docker build -t ${{ vars.ARTIFACT_REGISTRY_LOCATION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REGISTRY_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} -t ${{ vars.ARTIFACT_REGISTRY_LOCATION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REGISTRY_REPOSITORY }}/${{ env.IMAGE_NAME }}:latest .
+          docker images
+
+      # Push the Docker image to Artifact Registry
+      - name: Push Docker image
+        run: |
+          docker push ${{ vars.ARTIFACT_REGISTRY_LOCATION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REGISTRY_REPOSITORY }}/${{ env.IMAGE_NAME }}:latest
+          docker push ${{ vars.ARTIFACT_REGISTRY_LOCATION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REGISTRY_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      # Optional: Deploy to Cloud Run or other GCP service
+      # - name: Deploy to Cloud Run
+      #   uses: google-github-actions/deploy-cloudrun@v2
+      #   with:
+      #     service: angular-hello-world
+      #     image: ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+      #     region: us-central1
