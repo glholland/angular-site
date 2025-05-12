@@ -1,0 +1,24 @@
+# Node
+hello-world/node_modules
+hello-world/npm-debug.log
+hello-world/yarn-debug.log
+hello-world/yarn-error.log
+
+# Angular build output
+hello-world/dist
+
+# Git
+.git
+.github
+.gitignore
+
+# IDE files
+.idea
+.vscode
+*.swp
+*.swo
+
+# Environment variables
+.env
+.env.local
+.env.*.local
