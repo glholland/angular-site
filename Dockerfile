@@ -20,13 +20,13 @@ RUN npm run build
 FROM registry.access.redhat.com/ubi9/nginx-124@sha256:6465906193329d883dfe2de4077e5618420fa39885107f6dacd87fe00629ef4c
 
 # Copy built artifacts to nginx html directory
-COPY --from=build /app/dist/hello-world/browser /usr/share/nginx/html
+COPY --from=build /app/dist/hello-world/browser /opt/app-root/src
 
-# Copy nginx configuration if needed
+# Copy custom nginx configuration
 # COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expose port
-EXPOSE 80
+EXPOSE 8080
 
 # Start nginx
 CMD ["nginx", "-g", "daemon off;"]
